@@ -124,6 +124,55 @@ if st.button("🔍 Find My Phone"):
             st.warning("No phones found matching your preferences. Try adjusting filters.")
 
 # ===============================
+# 8️⃣ Chat-Based Interaction
+# ===============================
+st.markdown("---")
+st.subheader("💬 Chat with Your Phone Advisor")
+
+# Initialize chat history in session state
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
+
+# Function to handle user message and generate recommendation reply
+def chat_response(user_msg):
+    # Simple keyword-based parsing for now (can upgrade to NLP/LLM later)
+    budget_min, budget_max = price_range
+    priority_map = {"Performance":"Performance", "Camera":"Camera", "Battery":"Battery", "Display":"Display", "Balanced":"Balanced"}
+    
+    # Call the same recommendation function
+    recs = recommend(df.copy(), priority_map.get(priority,"Balanced"), (budget_min, budget_max), brand_pref)
+    
+    if recs.empty:
+        reply = "Sorry, no phones found matching your criteria. Try changing your filters."
+    else:
+        top = recs.head(3)
+        reply_lines = []
+        for _, row in top.iterrows():
+            line = f"**{row['brand']} {row['model']}** - ₹{int(row['price'])} | RAM: {int(row['ram'])}GB | Battery: {int(row['battery'])}mAh | Camera: {row['camera']} | Score: {round(row['score'],2)}"
+            reply_lines.append(line)
+        reply = "\n\n".join(reply_lines)
+    return reply
+
+# Chat input
+user_message = st.chat_input("Ask me about phones (e.g., 'Recommend me a gaming phone under 20000')")
+
+if user_message:
+    # Add user message to chat history
+    st.session_state.chat_history.append({"role":"user", "content":user_message})
+    
+    # Generate agentic AI reply
+    response = chat_response(user_message)
+    st.session_state.chat_history.append({"role":"assistant", "content":response})
+
+# Display chat messages
+for chat in st.session_state.chat_history:
+    if chat["role"] == "user":
+        st.chat_message("user").markdown(chat["content"])
+    else:
+        st.chat_message("assistant").markdown(chat["content"])
+
+
+# ===============================
 # 7️⃣ About Section
 # ===============================
 st.markdown("---")
