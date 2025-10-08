@@ -9,7 +9,16 @@ DATA_URL = "https://raw.githubusercontent.com/AnuragPhatak/smartphones_dataset_c
 @st.cache_data
 def load_data():
     df = pd.read_csv(DATA_URL)
-    df.columns = [c.strip().lower() for c in df.columns]  # clean column names
+    df.columns = [c.strip().lower() for c in df.columns]
+
+    # --- Create brand column from model ---
+    df["brand"] = df["model"].apply(lambda x: str(x).split()[0] if isinstance(x, str) else None)
+
+    # --- Clean numeric values ---
+    df["price"] = df["price"].replace('[₹,]', '', regex=True).astype(float)
+    df["ram"] = df["ram"].str.extract('(\d+)').astype(float)
+    df["battery"] = df["battery"].str.extract('(\d+)').astype(float)
+
     return df
 
 df = load_data()
@@ -22,7 +31,7 @@ st.set_page_config(page_title="AI-Powered Mobile Recommender", layout="centered"
 st.title("📱 SmartPhone Recommender (Agentic AI Concept)")
 st.markdown("""
 Welcome to the **AI-based Mobile Recommendation System**!  
-Describe your needs — or select preferences — and get top matching phones instantly.
+Describe your needs or select your preferences to get top matching phones.
 """)
 
 # ===============================
@@ -39,7 +48,6 @@ brand_pref = st.multiselect("🏷️ Preferred Brands", sorted(df["brand"].dropn
 # ===============================
 # 4️⃣ Agentic Scoring Logic
 # ===============================
-
 def score_phone(row, priority, budget_min, budget_max):
     score = 0
 
@@ -47,25 +55,26 @@ def score_phone(row, priority, budget_min, budget_max):
     if budget_min <= row["price"] <= budget_max:
         score += 1.0
     else:
-        score -= 0.5  # penalty
+        score -= 0.5  # penalty if outside range
 
-    # Performance Agent
-    if "ram" in row and isinstance(row["ram"], (int, float)):
+    # Performance Agent (RAM)
+    if not pd.isna(row["ram"]):
         score += (row["ram"] / df["ram"].max()) * 2
 
     # Battery Agent
-    if "battery" in row and isinstance(row["battery"], (int, float)):
+    if not pd.isna(row["battery"]):
         score += (row["battery"] / df["battery"].max())
 
     # Camera Agent
-    if "rear camera" in row:
+    if "camera" in row and isinstance(row["camera"], str):
         try:
-            cam_val = float(str(row["rear camera"]).split()[0])
+            cam_vals = [float(c.split('MP')[0].strip()) for c in row["camera"].split('+')]
+            cam_val = sum(cam_vals) / len(cam_vals)
             score += cam_val / 100
         except:
             pass
 
-    # Adjust based on priority
+    # Adjust based on user priority
     if priority == "Performance":
         score *= 1.2
     elif priority == "Camera":
@@ -76,17 +85,17 @@ def score_phone(row, priority, budget_min, budget_max):
     return score
 
 # ===============================
-# 5️⃣ Recommend Function
+# 5️⃣ Recommendation Function
 # ===============================
 def recommend(df, priority, price_range, brand_pref):
     df["score"] = df.apply(lambda x: score_phone(x, priority, price_range[0], price_range[1]), axis=1)
 
-    # Filter by brands if user selected
+    # Filter by selected brands if any
     if brand_pref:
         df = df[df["brand"].isin(brand_pref)]
 
     top_df = df.sort_values(by="score", ascending=False).head(3)
-    return top_df[["brand", "model", "price", "ram", "battery", "rear camera", "score"]]
+    return top_df[["brand", "model", "price", "ram", "battery", "camera", "score"]]
 
 # ===============================
 # 6️⃣ Display Recommendations
@@ -102,8 +111,8 @@ if st.button("🔍 Find My Phone"):
             for _, row in recommendations.iterrows():
                 st.markdown(f"""
                 **{row['brand']} {row['model']}**  
-                💰 ₹{row['price']}  
-                ⚡ RAM: {row['ram']} GB | 🔋 Battery: {row['battery']} mAh | 📸 Camera: {row['rear camera']}  
+                💰 ₹{int(row['price'])}  
+                ⚡ RAM: {int(row['ram'])} GB | 🔋 Battery: {int(row['battery'])} mAh | 📸 Camera: {row['camera']}  
                 ⭐ Score: {round(row['score'],2)}
                 """)
         else:
@@ -114,8 +123,10 @@ if st.button("🔍 Find My Phone"):
 # ===============================
 st.markdown("---")
 st.markdown("""
-**About:**  
-This app demonstrates an *Agentic AI* concept for product recommendation — where different “agents”  
-(Budget, Performance, Camera, Battery) evaluate data individually and collaborate to produce final ranked results.  
-Perfect for mini-projects or academic demos.
+**About this Project:**  
+This app demonstrates an *Agentic AI* approach for personalized product recommendations.  
+Different “agents” (Budget, Performance, Battery, Camera) evaluate products independently  
+and collaborate to produce a final ranked result.  
+
+Built using **Streamlit + Pandas**, powered by the *Smartphones Dataset from GitHub*.  
 """)
