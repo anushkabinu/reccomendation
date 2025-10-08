@@ -172,15 +172,4 @@ for chat in st.session_state.chat_history:
         st.chat_message("assistant").markdown(chat["content"])
 
 
-# ===============================
-# 7️⃣ About Section
-# ===============================
-st.markdown("---")
-st.markdown("""
-**About this Project:**  
-This app demonstrates an *Agentic AI* approach for personalized product recommendations.  
-Different “agents” (Budget, Performance, Battery, Camera) evaluate products independently  
-and collaborate to produce a final ranked result.  
 
-Built using **Streamlit + Pandas**, powered by the *Smartphones Dataset from GitHub*.  
-""")
