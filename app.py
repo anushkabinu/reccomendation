@@ -88,12 +88,17 @@ def score_phone(row, priority, budget_min, budget_max):
 # 5️⃣ Recommendation Function
 # ===============================
 def recommend(df, priority, price_range, brand_pref):
-    df["score"] = df.apply(lambda x: score_phone(x, priority, price_range[0], price_range[1]), axis=1)
+    # 1️⃣ Filter by price first
+    df = df[(df["price"] >= price_range[0]) & (df["price"] <= price_range[1])]
 
-    # Filter by selected brands if any
+    # 2️⃣ Filter by brand (if any)
     if brand_pref:
         df = df[df["brand"].isin(brand_pref)]
 
+    # 3️⃣ Compute agentic score only for filtered phones
+    df["score"] = df.apply(lambda x: score_phone(x, priority, price_range[0], price_range[1]), axis=1)
+
+    # 4️⃣ Sort top recommendations
     top_df = df.sort_values(by="score", ascending=False).head(3)
     return top_df[["brand", "model", "price", "ram", "battery", "camera", "score"]]
 
