@@ -5,6 +5,7 @@ import pandas as pd
 # 1️⃣ Load Dataset from GitHub
 # ===============================
 DATA_URL = "https://raw.githubusercontent.com/AnuragPhatak/smartphones_dataset_cleanning/main/smartphones_new.csv"
+st.write("Columns in dataset:", df.columns.tolist())
 
 @st.cache_data
 def load_data():
